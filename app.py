@@ -10,7 +10,7 @@ st.write("कैथी लिपि का पेज अपलोड करे�
 st.header("⚙️ Settings")
 ai_choice = st.radio("अनुवाद के लिए AI चुनें:", ("Google Gemini (Free)", "ChatGPT (OpenAI - GPT-4o)"))
 api_key = st.text_input("Enter API Key", type="password")
-st.markdown("[Get Free API Key](https://aistudio.google.com/app/apikey)")
+st.markdown("[Get Free API Key](https://aistudio.google.com/)")
 
 # 3. File Uploader
 uploaded_file = st.file_uploader("कैथी की इमेज या पेज यहाँ अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -38,8 +38,8 @@ if uploaded_file is not None:
                     # Gemini API को सेट करना
                     genai.configure(api_key=api_key)
                     
-                    # 404 Error से बचने के लिए लेटेस्ट मॉडल का इस्तेमाल
-                    model = genai.GenerativeModel('gemini-1.5-flash-latest') 
+                    # 404 Error से बचने के लिए सही और एक्टिव मॉडल का इस्तेमाल
+                    model = genai.GenerativeModel('gemini-1.5-flash') 
                     
                     # AI को निर्देश (Prompt) देना
                     prompt = "यह कैथी (Kaithi) लिपि में लिखा गया एक पुराना दस्तावेज़ है। कृपया इस इमेज को ध्यान से पढ़ें और इसका शुद्ध हिंदी में अनुवाद करें। अनुवाद करते समय ओरिजिनल फॉर्मेट बरकरार रखें।"
