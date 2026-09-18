@@ -1,52 +1,50 @@
 import streamlit as st
-import requests
-import base64
+import google.generativeai as genai
+from PIL import Image
 
+# 1. Page Configuration
+st.set_page_config(page_title="Kaithi Page Translator", page_icon="📜")
+
+# 2. Header & Title
 st.title("📜 Kaithi Page Translator (AI Powered)")
 st.write("कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट बरकरार रखते हुए अनुवाद करेगा।")
 
+# 3. Settings (API Key)
 st.header("⚙️ Settings")
 api_key = st.text_input("Enter API Key", type="password")
 
+# 4. Image Upload
 uploaded_file = st.file_uploader("कैथी की इमेज अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    st.image(uploaded_file, use_container_width=True)
-    
-    if st.button("अनुवाद शुरू करें (Translate)"):
-        if api_key == "":
-            st.error("⚠️ कृपया सेटिंग्स में अपनी API Key दर्ज करें!")
-        else:
-            with st.spinner("AI अनुवाद कर रहा है... कृपया प्रतीक्षा करें..."):
-                try:
-                    # इमेज को तैयार करना
-                    base64_image = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
-                    mime_type = uploaded_file.type
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-                    # एकदम सही और स्टेबल मॉडल का नाम
-                    model_name = "models/gemini-1.5-flash"
-                    
-                    # Direct Google API Request
-                    url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-                    headers = {'Content-Type': 'application/json'}
-                    payload = {
-                        "contents": [{
-                            "parts": [
-                                {"text": "यह कैथी (Kaithi) लिपि में लिखा गया एक दस्तावेज़ है। कृपया इस इमेज को ध्यान से पढ़ें और इसका शुद्ध हिंदी में अनुवाद करें।"},
-                                {"inline_data": {"mime_type": mime_type, "data": base64_image}}
-                            ]
-                        }]
-                    }
-                    
-                    response = requests.post(url, headers=headers, json=payload)
-                    data = response.json()
-
-                    # रिज़ल्ट दिखाना
-                    if response.status_code == 200:
-                        st.success(f"✅ अनुवाद सफल रहा!")
-                        st.write(data['candidates'][0]['content']['parts'][0]['text'])
-                    else:
-                        st.error(f"Google Server Error: {data.get('error', {}).get('message', 'Unknown Error')}")
-                        
-                except Exception as e:
-                    st.error(f"System Error: {e}")
+# 5. Translate Button and Logic
+if st.button("अनुवाद शुरू करें (Translate)"):
+    if not api_key:
+        st.warning("⚠️ कृपया अनुवाद शुरू करने से पहले अपना Google API Key दर्ज करें।")
+    elif uploaded_file is None:
+        st.warning("⚠️ कृपया कैथी लिपि की कोई इमेज अपलोड करें।")
+    else:
+        try:
+            with st.spinner("AI अनुवाद कर रहा है, कृपया प्रतीक्षा करें..."):
+                # API सेटअप
+                genai.configure(api_key=api_key)
+                
+                # फिक्स किया गया मॉडल नाम
+                model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                
+                # प्रॉम्प्ट (AI को निर्देश)
+                prompt = "Read the handwritten Kaithi script in this image and translate it into Hindi. Please maintain the original format, structure, and meaning as accurately as possible."
+                
+                # AI से रिस्पांस लेना
+                response = model.generate_content([prompt, image])
+                
+                # परिणाम दिखाना
+                st.success("अनुवाद सफल!")
+                st.markdown("### अनुवादित टेक्स्ट:")
+                st.write(response.text)
+                
+        except Exception as e:
+            st.error(f"❌ एक समस्या आई: {e}")
