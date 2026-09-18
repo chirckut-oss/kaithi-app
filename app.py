@@ -1,5 +1,4 @@
 import streamlit as st
-from PIL import Image
 
 # 1. UI Setup aur Title
 st.title("📜 Kaithi Page Translator (AI Powered)")
@@ -8,24 +7,22 @@ st.write("कैथी लिपि का पेज अपलोड करे�
 # 2. Settings Section
 st.header("⚙️ Settings")
 ai_choice = st.radio("अनुवाद के लिए AI चुनें:", ("Google Gemini (Free)", "ChatGPT (OpenAI - GPT-4o)"))
-api_key = st.text_input("Enter Google Gemini API Key", type="password")
-st.markdown("[Get Free Gemini API Key](#)")
+api_key = st.text_input("Enter API Key", type="password")
+st.markdown("[Get Free API Key](#)")
 
 # 3. File Uploader
 uploaded_file = st.file_uploader("कैथी की इमेज या पेज यहाँ अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
-# 4. Displaying the Image (Error fix is here)
+# 4. Displaying the Image
 st.header("Original Kaithi Page")
 
 # Condition check: Jab file upload hogi, tabhi image display hogi
 if uploaded_file is not None:
-    # Image ko PIL ke through open karein
-    image = Image.open(uploaded_file)
+    # Streamlit direct file object ko accept karta hai (Bina kisi extra library ke)
+    # Note: 'use_container_width' naya aur sahi parameter hai
+    st.image(uploaded_file, use_container_width=True)
     
-    # Image ko display karein (Ab yahan line 47 par error nahi aayega)
-    st.image(image, use_column_width=True)
-    
-    # Yahan aap apne AI translation ka aage ka code likh sakte hain
+    # Yahan se aage aap apne AI (Gemini/GPT) API ka logic likh sakte hain
     # st.write("Translating...")
 else:
     # Agar file upload nahi hui hai, toh ek message dikhayein
