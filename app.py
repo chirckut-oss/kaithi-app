@@ -2,49 +2,56 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# पेज टाइटल और डिस्क्रिप्शन
+# पेज की सेटिंग
+st.set_page_config(page_title="Kaithi Page Translator", page_icon="📜")
+
+# टाइटल और जानकारी
 st.title("📜 Kaithi Page Translator (AI Powered)")
 st.write("कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट बरकरार रखते हुए अनुवाद करेगा।")
 
-# सेटिंग्स और API Key इनपुट
 st.header("⚙️ Settings")
+# API Key इनपुट
 api_key = st.text_input("Enter API Key", type="password")
 
 # इमेज अपलोडर
 uploaded_file = st.file_uploader("कैथी की इमेज अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
+# इमेज दिखाना
 if uploaded_file is not None:
-    # इमेज को लोड करना
     image = Image.open(uploaded_file)
-    
-    # पुरानी एरर (use_column_width) को फिक्स कर दिया गया है
     st.image(image, caption="Uploaded Image", use_container_width=True)
-    
-    # ट्रांसलेट बटन
-    if st.button("Translate to Hindi/English"):
-        if not api_key:
-            st.error("⚠️ कृपया ऊपर Settings में अपनी Google API Key डालें।")
-        else:
-            try:
-                # Google Gemini API से कनेक्शन (Google Server)
-                genai.configure(api_key=api_key)
+
+# अनुवाद बटन
+if st.button("Translate to Hindi/English"):
+    if not api_key:
+        st.warning("कृपया पहले अपनी API Key दर्ज करें।")
+    elif uploaded_file is None:
+        st.warning("कृपया अनुवाद के लिए कैथी लिपि की इमेज अपलोड करें।")
+    else:
+        try:
+            # API Key कॉन्फ़िगरेशन
+            genai.configure(api_key=api_key)
+            
+            # अपडेटेड मॉडल (gemini-2.5-flash) का उपयोग
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            
+            with st.spinner("अनुवाद किया जा रहा है, कृपया प्रतीक्षा करें..."):
+                # AI के लिए प्रॉम्प्ट
+                prompt = """
+                This is an image containing text written in Kaithi script. 
+                Please transcribe and translate this text into both Hindi and English. 
+                Try to maintain the original format and layout as much as possible.
+                """
                 
-                # इमेज और टेक्स्ट दोनों को प्रोसेस करने के लिए gemini-1.5-flash सबसे बेहतर है
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # API कॉल
+                response = model.generate_content([prompt, image])
                 
-                with st.spinner("Google Server से कनेक्ट हो रहा है और अनुवाद किया जा रहा है..."):
-                    # AI को निर्देश (Prompt)
-                    prompt = "This image contains handwritten text in Kaithi script. Please translate the Kaithi text into Hindi, maintaining the original structure and format as much as possible."
-                    
-                    # API कॉल
-                    response = model.generate_content([prompt, image])
-                    
-                    # रिजल्ट दिखाना
-                    st.success("अनुवाद सफल!")
-                    st.subheader("Translation Result:")
-                    st.write(response.text)
-                    
-            except Exception as e:
-                # अगर Google server या API key में कोई दिक्कत आती है, तो यह एरर दिखाएगा
-                st.error(f"❌ Google Server Connection Error: {e}")
-                st.info("कृपया चेक करें कि आपकी API Key सही है और आपके पास इंटरनेट कनेक्शन है।")
+                st.success("अनुवाद पूरा हुआ!")
+                
+                # परिणाम दिखाना
+                st.markdown("### Translation Result:")
+                st.write(response.text)
+                
+        except Exception as e:
+            st.error(f"Google Server Connection Error: {e}")
+            st.info("कृपया चेक करें कि आपकी API Key सही है और आपके पास इंटरनेट कनेक्शन है।")
