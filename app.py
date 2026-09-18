@@ -1,29 +1,28 @@
-import streamlit as st
-
-# 1. UI Setup aur Title
-st.title("📜 Kaithi Page Translator (AI Powered)")
-st.write("कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट और पैराग्राफ स्टाइल बरकरार रखते हुए अनुवाद करेगा।")
-
-# 2. Settings Section
-st.header("⚙️ Settings")
-ai_choice = st.radio("अनुवाद के लिए AI चुनें:", ("Google Gemini (Free)", "ChatGPT (OpenAI - GPT-4o)"))
-api_key = st.text_input("Enter API Key", type="password")
-st.markdown("[Get Free API Key](#)")
-
-# 3. File Uploader
-uploaded_file = st.file_uploader("कैथी की इमेज या पेज यहाँ अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
-
-# 4. Displaying the Image
-st.header("Original Kaithi Page")
-
-# Condition check: Jab file upload hogi, tabhi image display hogi
-if uploaded_file is not None:
-    # Streamlit direct file object ko accept karta hai (Bina kisi extra library ke)
-    # Note: 'use_container_width' naya aur sahi parameter hai
-    st.image(uploaded_file, use_container_width=True)
+st.image(uploaded_file, use_container_width=True)
     
-    # Yahan se aage aap apne AI (Gemini/GPT) API ka logic likh sakte hain
-    # st.write("Translating...")
+    # --- नया कोड यहाँ से जोड़ें ---
+    
+    # 5. Translation Button
+    if st.button("अनुवाद शुरू करें (Translate)"):
+        # चेक करें कि API Key डाली गई है या नहीं
+        if api_key == "":
+            st.error("⚠️ कृपया सेटिंग्स में अपनी API Key दर्ज करें!")
+        else:
+            # लोडिंग स्पिनर दिखाना
+            with st.spinner(f"{ai_choice} द्वारा अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें..."):
+                
+                try:
+                    # ==========================================
+                    # यहाँ आपका असल AI (Gemini / OpenAI) का कोड आएगा
+                    # ==========================================
+                    
+                    # अभी के लिए डेमो टेक्स्ट (जब आप असली API कोड डालेंगे तो इसे हटा दें)
+                    st.success("✅ अनुवाद सफल रहा!")
+                    st.subheader("Translated Text:")
+                    st.write("यहाँ AI द्वारा पढ़ा गया कैथी का हिंदी/अंग्रेजी अनुवाद दिखाई देगा...")
+                    
+                except Exception as e:
+                    st.error(f"अनुवाद के दौरान कोई एरर आ गया: {e}")
+
 else:
-    # Agar file upload nahi hui hai, toh ek message dikhayein
     st.info("कृपया अनुवाद शुरू करने के लिए कैथी लिपि की इमेज अपलोड करें।")
