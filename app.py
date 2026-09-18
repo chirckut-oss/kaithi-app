@@ -1,64 +1,90 @@
-import google.generativeai as genai
 import streamlit as st
-from PIL import Image
+import sqlite3
 
-# पेज कॉन्फिगरेशन
-st.set_page_config(page_title="Kaithi Page Translator", layout="wide")
+# Page Configuration
+st.set_page_config(page_title="Kaithi App", page_icon="📜", layout="centered")
 
-st.title("📜 Kaithi Page Translator (AI Powered)")
-st.write(
-    "कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट बरकरार रखते हुए अनुवाद करेगा।"
-)
+# Database Connection Helper
+def init_db():
+    conn = sqlite3.connect('kaithi.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-# साइडबार या सेटिंग्स में API Key इनपुट
-st.sidebar.title("⚙️ Settings")
-api_key = st.sidebar.text_input("Enter API Key", type="password")
+init_db()
 
-# स्थानीय सुधार निर्देश (Custom Prompts)
-st.sidebar.markdown("### 📝 स्थानीय सुधार निर्देश (Custom Prompts)")
-custom_prompt = st.sidebar.text_area(
-    "यहाँ सही नाम दर्ज करें (यदि कोई हो):",
-    value="विशेष निर्देश: पुराने दस्तावेजों के आधार पर 'जगdv' या मिलते-जुलते नाम को हमेशा 'जगदेव सिंह' पढ़ें, और उत्तर दिशा के मकान के लिए 'शिवशरण सिंह' का संदर्भ लें।",
-)
+st.title("📜 Kaithi App - Record Management")
 
-# इमेज अपलोड करने का विकल्प
-uploaded_file = st.file_uploader(
-    "कैथी की इमेज अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"]
-)
+# Sidebar for Navigation
+menu = ["View Records", "Add Record", "Update Record"]
+choice = st.sidebar.selectbox("Navigation", menu)
 
-if uploaded_file is not None:
-  image = Image.open(uploaded_file)
-  st.image(image, caption="Uploaded Image", use_column_width=True)
+conn = sqlite3.connect('kaithi.db')
+c = conn.cursor()
 
-# अनुवाद बटन
-if st.button("Translate to Hindi/English"):
-  if not api_key:
-    st.error("कृपया पहले अपनी API Key दर्ज करें!")
-  elif not uploaded_file:
-    st.error("कृपया अनुवाद के लिए कोई इमेज अपलोड करें!")
-  else:
-  try:
-    # Google GenAI कॉन्फिगरेशन
-    genai.configure(api_key=api_key)
+if choice == "Add Record":
+    st.subheader("Add a New Record")
+    with st.form("add_form"):
+        title = st.text_input("Title")
+        content = st.text_area("Content")
+        submit_button = st.form_submit_button("Add Record")
+        
+        if submit_button:
+            if title and content:
+                c.execute("INSERT INTO records (title, content) VALUES (?, ?)", (title, content))
+                conn.commit()
+                st.success("Record added successfully!")
+            else:
+                st.warning("Please fill out both fields.")
 
-    # मॉडल का नाम अपडेट करके gemini-3.6-flash किया गया है
-    model_name = "models/gemini-3.6-flash"
-    model = genai.GenerativeModel(model_name)
+elif choice == "View Records":
+    st.subheader("All Records")
+    c.execute("SELECT id, title, content FROM records")
+    data = c.fetchall()
+    
+    if data:
+        for row in data:
+            st.write(f"**ID:** {row[0]} | **Title:** {row[1]}")
+            st.write(f"**Content:** {row[2]}")
+            st.markdown("---")
+    else:
+        st.info("No records found.")
 
-    # प्रॉम्प्ट तैयार करना
-    prompt = f"""
-            आप कैथी लिपि (Kaithi script) के पुराने दस्तावेजों को पढ़ने और अनुवाद करने में माहिर हैं।
-            दिए गए निर्देश और कस्टम प्रॉम्प्ट का पालन करें:
-            {custom_prompt}
+elif choice == "Update Record":
+    st.subheader("Update Existing Record")
+    try:
+        c.execute("SELECT id, title FROM records")
+        records = c.fetchall()
+        
+        if records:
+            record_dict = {f"{r[1]} (ID: {r[0]})": r[0] for r in records}
+            selected_record_label = st.selectbox("Select Record to Update", list(record_dict.keys()))
+            selected_id = record_dict[selected_record_label]
             
-            कृपया इस इमेज में दी गई कैथी लिपि को समझकर उसका सटीक हिंदी (या अंग्रेजी, जैसी आवश्यकता हो) में अनुवाद करें और उसका फॉर्मेट बनाए रखें।
-            """
+            # Fetch current content
+            c.execute("SELECT title, content FROM records WHERE id = ?", (selected_id,))
+            current_data = c.fetchone()
+            
+            with st.form("update_form"):
+                new_title = st.text_input("Update Title", value=current_data[0])
+                new_content = st.text_area("Update Content", value=current_data[1])
+                update_button = st.form_submit_button("Update Record")
+                
+                if update_button:
+                    c.execute("UPDATE records SET title = ?, content = ? WHERE id = ?", (new_title, new_content, selected_id))
+                    conn.commit()
+                    st.success(f"Record ID {selected_id} updated successfully!")
+        else:
+            st.info("No records available to update.")
+            
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
-    with st.spinner("अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें"):
-      response = model.generate_content([prompt, image])
-
-    st.subheader("अनुवाद परिणाम (Translation Result):")
-    st.write(response.text)
-
-  except Exception as e:
-    st.error(f"त्रुटि (Error) आई है: {e}")
+conn.close()
