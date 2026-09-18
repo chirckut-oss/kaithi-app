@@ -10,7 +10,7 @@ st.write("कैथी लिपि का पेज अपलोड करे�
 st.header("⚙️ Settings")
 ai_choice = st.radio("अनुवाद के लिए AI चुनें:", ("Google Gemini (Free)", "ChatGPT (OpenAI - GPT-4o)"))
 api_key = st.text_input("Enter API Key", type="password")
-st.markdown("[Get Free API Key](https://aistudio.google.com/)")
+st.markdown("[Get Free API Key](https://aistudio.google.com/app/apikey)")
 
 # 3. File Uploader
 uploaded_file = st.file_uploader("कैथी की इमेज या पेज यहाँ अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -18,16 +18,18 @@ uploaded_file = st.file_uploader("कैथी की इमेज या पे
 # 4. Displaying the Image and Translation logic
 st.header("Original Kaithi Page")
 
-# Condition check
+# Condition check: Jab file upload hogi, tabhi aage ka kaam hoga
 if uploaded_file is not None:
+    # Image dikhane ka code
     st.image(uploaded_file, use_container_width=True)
     
     # 5. Translation Button
     if st.button("अनुवाद शुरू करें (Translate)"):
-        
+        # चेक करें कि API Key डाली गई है या नहीं
         if api_key == "":
             st.error("⚠️ कृपया सेटिंग्स में अपनी API Key दर्ज करें!")
         else:
+            # लोडिंग स्पिनर दिखाना
             with st.spinner(f"{ai_choice} द्वारा अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें..."):
                 try:
                     # Image को AI के लिए तैयार करना
@@ -35,7 +37,9 @@ if uploaded_file is not None:
                     
                     # Gemini API को सेट करना
                     genai.configure(api_key=api_key)
-                    model = genai.GenerativeModel('gemini-1.5-flash') 
+                    
+                    # 404 Error से बचने के लिए लेटेस्ट मॉडल का इस्तेमाल
+                    model = genai.GenerativeModel('gemini-1.5-flash-latest') 
                     
                     # AI को निर्देश (Prompt) देना
                     prompt = "यह कैथी (Kaithi) लिपि में लिखा गया एक पुराना दस्तावेज़ है। कृपया इस इमेज को ध्यान से पढ़ें और इसका शुद्ध हिंदी में अनुवाद करें। अनुवाद करते समय ओरिजिनल फॉर्मेट बरकरार रखें।"
