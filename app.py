@@ -10,7 +10,6 @@ st.write("कैथी लिपि का पेज अपलोड करे�
 st.header("⚙️ Settings")
 ai_choice = st.radio("अनुवाद के लिए AI चुनें:", ("Google Gemini (Free)", "ChatGPT (OpenAI - GPT-4o)"))
 api_key = st.text_input("Enter API Key", type="password")
-st.markdown("[Get Free API Key](https://aistudio.google.com/)")
 
 # 3. File Uploader
 uploaded_file = st.file_uploader("कैथी की इमेज या पेज यहाँ अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -18,41 +17,47 @@ uploaded_file = st.file_uploader("कैथी की इमेज या पे
 # 4. Displaying the Image and Translation logic
 st.header("Original Kaithi Page")
 
-# Condition check: Jab file upload hogi, tabhi aage ka kaam hoga
 if uploaded_file is not None:
-    # Image dikhane ka code
     st.image(uploaded_file, use_container_width=True)
     
     # 5. Translation Button
     if st.button("अनुवाद शुरू करें (Translate)"):
-        # चेक करें कि API Key डाली गई है या नहीं
         if api_key == "":
             st.error("⚠️ कृपया सेटिंग्स में अपनी API Key दर्ज करें!")
         else:
-            # लोडिंग स्पिनर दिखाना
-            with st.spinner(f"{ai_choice} द्वारा अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें..."):
+            with st.spinner("अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें..."):
                 try:
-                    # Image को AI के लिए तैयार करना
+                    # इमेज को तैयार करना
                     img = Image.open(uploaded_file)
-                    
-                    # Gemini API को सेट करना
                     genai.configure(api_key=api_key)
                     
-                    # 404 Error से बचने के लिए सही और एक्टिव मॉडल का इस्तेमाल
-                    model = genai.GenerativeModel('gemini-1.5-flash') 
+                    # 💡 SMART MODEL SELECTOR: यह खुद ढूंढेगा कि आपकी API Key पर कौन सा मॉडल चलेगा
+                    best_model = "gemini-pro-vision" # Default fallback
                     
-                    # AI को निर्देश (Prompt) देना
+                    for m in genai.list_models():
+                        if 'generateContent' in m.supported_generation_methods:
+                            # अगर नया फ्लैश या प्रो मॉडल मिला, तो उसे चुन लेगा
+                            if '1.5-flash' in m.name:
+                                best_model = m.name.replace('models/', '')
+                                break
+                            elif '1.5-pro' in m.name or 'pro-vision' in m.name:
+                                best_model = m.name.replace('models/', '')
+                    
+                    # सही मॉडल लोड करना
+                    model = genai.GenerativeModel(best_model)
+                    
+                    # AI को निर्देश देना
                     prompt = "यह कैथी (Kaithi) लिपि में लिखा गया एक पुराना दस्तावेज़ है। कृपया इस इमेज को ध्यान से पढ़ें और इसका शुद्ध हिंदी में अनुवाद करें। अनुवाद करते समय ओरिजिनल फॉर्मेट बरकरार रखें।"
                     
-                    # AI से जवाब (Translation) मँगवाना
+                    # अनुवाद मँगवाना
                     response = model.generate_content([prompt, img])
                     
-                    # असली रिजल्ट स्क्रीन पर दिखाना
-                    st.success("✅ अनुवाद सफल रहा!")
+                    # फाइनल रिज़ल्ट स्क्रीन पर दिखाना
+                    st.success(f"✅ अनुवाद सफल रहा! (Model used: {best_model})")
                     st.subheader("Translated Text:")
                     st.write(response.text)
                     
                 except Exception as e:
-                    st.error(f"अनुवाद के दौरान एरर आ गया। कृपया अपनी API Key चेक करें। एरर डिटेल: {e}")
+                    st.error(f"अनुवाद के दौरान एरर आ गया। कृपया अपनी API Key चेक करें। डिटेल: {e}")
 else:
     st.info("कृपया अनुवाद शुरू करने के लिए कैथी लिपि की इमेज अपलोड करें।")
