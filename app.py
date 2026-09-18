@@ -17,28 +17,17 @@ if uploaded_file is not None:
         if api_key == "":
             st.error("⚠️ कृपया सेटिंग्स में अपनी API Key दर्ज करें!")
         else:
-            with st.spinner("AI model check kiya ja raha hai aur anuvad ho raha hai..."):
+            with st.spinner("AI अनुवाद कर रहा है... कृपया प्रतीक्षा करें..."):
                 try:
-                    # 1. Pehle check karte hain ki aapki API key par kaunse models available hain
-                    models_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-                    models_res = requests.get(models_url).json()
-                    
-                    best_model = "models/gemini-1.5-flash" # Default fallback
-                    
-                    if "models" in models_res:
-                        for m in models_res["models"]:
-                            # Aisa model dhundho jo text/image generate kar sake
-                            if "generateContent" in m.get("supportedGenerationMethods", []) and "1.5" in m.get("name", ""):
-                                best_model = m["name"]
-                                if "flash" in best_model:  # Flash sabse fast hai
-                                    break
-                    
-                    # 2. Image ko base64 format me convert karna
+                    # इमेज को तैयार करना
                     base64_image = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
                     mime_type = uploaded_file.type
 
-                    # 3. Direct Google API ko request bhejna (Bina kisi library ke)
-                    url = f"https://generativelanguage.googleapis.com/v1beta/{best_model}:generateContent?key={api_key}"
+                    # एकदम सही मॉडल का नाम (1.5 Pro Latest - जो हैंडराइटिंग के लिए बेस्ट है)
+                    model_name = "models/gemini-1.5-pro-latest"
+                    
+                    # Direct Google API Request
+                    url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
                     headers = {'Content-Type': 'application/json'}
                     payload = {
                         "contents": [{
@@ -52,9 +41,9 @@ if uploaded_file is not None:
                     response = requests.post(url, headers=headers, json=payload)
                     data = response.json()
 
-                    # 4. Result display karna
+                    # रिज़ल्ट दिखाना
                     if response.status_code == 200:
-                        st.success(f"✅ अनुवाद सफल रहा! (Model used: {best_model})")
+                        st.success(f"✅ अनुवाद सफल रहा!")
                         st.write(data['candidates'][0]['content']['parts'][0]['text'])
                     else:
                         st.error(f"Google Server Error: {data.get('error', {}).get('message', 'Unknown Error')}")
