@@ -33,7 +33,7 @@ if st.button("Translate to Hindi/English"):
             genai.configure(api_key=api_key)
             
             # अपडेटेड मॉडल (gemini-2.5-flash) का उपयोग
-            model = genai.GenerativeModel("gemini-2.5-flash")
+            model = genai.GenerativeModel("gemini-3.6-flash")
             
             with st.spinner("अनुवाद किया जा रहा है, कृपया प्रतीक्षा करें..."):
                 # AI के लिए प्रॉम्प्ट
