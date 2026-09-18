@@ -23,8 +23,8 @@ if uploaded_file is not None:
                     base64_image = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
                     mime_type = uploaded_file.type
 
-                    # एकदम सही मॉडल का नाम (1.5 Pro Latest - जो हैंडराइटिंग के लिए बेस्ट है)
-                    model_name = "models/gemini-1.5-pro-latest"
+                    # एकदम सही और स्टेबल मॉडल का नाम
+                    model_name = "models/gemini-1.5-flash"
                     
                     # Direct Google API Request
                     url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
