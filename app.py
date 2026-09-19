@@ -31,9 +31,10 @@ st.title("📜 Kaithi AI Pro (Self-Learning Translator)")
 st.sidebar.header("⚙️ Settings")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
 
-# 4 मुख्य फीचर्स के लिए टैब्स
-tab1, tab2, tab3, tab4 = st.tabs([
+# अब ऐप में 5 मुख्य टैब्स होंगे
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📝 अनुवाद (Translate)", 
+    "⚖️ तुलना (Compare Samples)", 
     "📖 मेरी डिक्शनरी (Dictionary)", 
     "📊 ऐतिहासिक विश्लेषण (Analysis)", 
     "🧠 AI ट्यूटर (Learn)"
@@ -58,7 +59,7 @@ with tab1:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel("gemini-2.5-flash")
                 
-                # AI को पुरानी डिक्शनरी और गलतियों का संदर्भ देना (Machine Learning Prompt)
+                # AI को पुरानी डिक्शनरी का संदर्भ देना 
                 dict_context = json.dumps(db_data["dictionary"], ensure_ascii=False)
                 
                 learning_prompt = f"""
@@ -77,7 +78,7 @@ with tab1:
             except Exception as e:
                 st.error(f"Error: {e}")
 
-    # Feedback Loop: AI को अपनी गलतियां सुधारना सिखाएं
+    # Feedback Loop
     if 'last_translation' in st.session_state:
         st.markdown("### 📄 Translation Result:")
         st.write(st.session_state['last_translation'])
@@ -89,10 +90,65 @@ with tab1:
         if st.button("Save Correction to AI Memory"):
             db_data["corrections"].append(corrected_text)
             save_db(db_data)
-            st.success("✅ आपका सुधारा हुआ अनुवाद AI की मेमोरी में सेव हो गया है! अगली बार यह इस गलती को नहीं दोहराएगा।")
+            st.success("✅ आपका सुधारा हुआ अनुवाद AI की मेमोरी में सेव हो गया है!")
 
-# ----------------- TAB 2: CUSTOM DICTIONARY -----------------
+# ----------------- TAB 2: COMPARE SAMPLES (नया फीचर) -----------------
 with tab2:
+    st.header("⚖️ अनुवाद की तुलना करें (Compare Translations)")
+    st.write("एक ही स्क्रीन पर ओरिजिनल कागज़, आपका अनुवाद और AI का अनुवाद देखें और तुलना करें।")
+
+    comp_img_file = st.file_uploader("कैथी इमेज अपलोड करें (Original Paper)", type=["jpg", "jpeg", "png"], key="comp_img")
+    
+    # यूज़र का अनुवाद इनपुट करने का बॉक्स
+    user_translation = st.text_area("अपना अनुवाद यहाँ पेस्ट करें या लिखें (Your Translation):", height=150)
+
+    if st.button("AI से अनुवाद कराएं और तुलना करें"):
+        if not api_key:
+            st.error("API Key दर्ज करें।")
+        elif comp_img_file is None:
+            st.warning("कृपया पहले ओरिजिनल इमेज अपलोड करें।")
+        elif not user_translation.strip():
+            st.warning("कृपया अपना अनुवाद भी डालें ताकि तुलना की जा सके।")
+        else:
+            try:
+                comp_image = Image.open(comp_img_file)
+                
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                
+                dict_context = json.dumps(db_data["dictionary"], ensure_ascii=False)
+                comp_prompt = f"""
+                तुम कैथी लिपि के विशेषज्ञ हो। डिक्शनरी: {dict_context} का उपयोग करो।
+                इस इमेज का सबसे सटीक और आसान अनुवाद करो।
+                """
+                
+                with st.spinner("AI अपना अनुवाद तैयार कर रहा है..."):
+                    ai_response = model.generate_content([comp_prompt, comp_image])
+                    ai_translation = ai_response.text
+                
+                st.success("डेटा तैयार है! नीचे तुलना देखें:")
+                st.divider()
+                
+                # 3 कॉलम में डेटा दिखाना
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.subheader("🖼️ 1. ओरिजिनल पेपर")
+                    st.image(comp_image, use_container_width=True)
+                    
+                with col2:
+                    st.subheader("🧑‍💻 2. आपका अनुवाद")
+                    st.info(user_translation)
+                    
+                with col3:
+                    st.subheader("🤖 3. AI का अनुवाद")
+                    st.success(ai_translation)
+                    
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+# ----------------- TAB 3: CUSTOM DICTIONARY -----------------
+with tab3:
     st.header("📖 कैथी शब्दकोश (AI Knowledge Base)")
     st.write("यहाँ नए कैथी शब्द जोड़ें। AI अनुवाद करते समय इन शब्दों का संदर्भ लेगा।")
     
@@ -114,8 +170,8 @@ with tab2:
     st.subheader("📚 आपकी सेव की गई डिक्शनरी:")
     st.json(db_data["dictionary"])
 
-# ----------------- TAB 3: DOCUMENT ANALYSIS -----------------
-with tab3:
+# ----------------- TAB 4: DOCUMENT ANALYSIS -----------------
+with tab4:
     st.header("📊 लंबी किताब या पुराने कागज़ात का विश्लेषण")
     st.write("यहाँ कोई पुराना दस्तावेज़ अपलोड करें और उसकी ऐतिहासिक अहमियत, विषय और कठिन शब्दों की रिपोर्ट पाएं।")
     
@@ -149,8 +205,8 @@ with tab3:
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# ----------------- TAB 4: AI TUTOR (LEARN) -----------------
-with tab4:
+# ----------------- TAB 5: AI TUTOR (LEARN) -----------------
+with tab5:
     st.header("🧠 कैथी ट्यूटर से सीखें")
     st.write("कैथी लिपि के बारे में कोई भी सवाल पूछें।")
     
