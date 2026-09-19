@@ -1,64 +1,57 @@
-import google.generativeai as genai
 import streamlit as st
+import google.generativeai as genai
 from PIL import Image
 
-# पेज कॉन्फिगरेशन
-st.set_page_config(page_title="Kaithi Page Translator", layout="wide")
+# पेज की सेटिंग
+st.set_page_config(page_title="Kaithi Page Translator", page_icon="📜")
 
+# टाइटल और जानकारी
 st.title("📜 Kaithi Page Translator (AI Powered)")
-st.write(
-    "कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट बरकरार रखते हुए अनुवाद करेगा।"
-)
+st.write("कैथी लिपि का पेज अपलोड करें, और AI उसका ओरिजिनल फॉर्मेट बरकरार रखते हुए अनुवाद करेगा।")
 
-# साइडबार या सेटिंग्स में API Key इनपुट
-st.sidebar.title("⚙️ Settings")
-api_key = st.sidebar.text_input("Enter API Key", type="password")
+st.header("⚙️ Settings")
+# API Key इनपुट
+api_key = st.text_input("Enter API Key", type="password")
 
-# स्थानीय सुधार निर्देश (Custom Prompts)
-st.sidebar.markdown("### 📝 स्थानीय सुधार निर्देश (Custom Prompts)")
-custom_prompt = st.sidebar.text_area(
-    "यहाँ सही नाम दर्ज करें (यदि कोई हो):",
-    value="विशेष निर्देश: पुराने दस्तावेजों के आधार पर 'जगdv' या मिलते-जुलते नाम को हमेशा 'जगदेव सिंह' पढ़ें, और उत्तर दिशा के मकान के लिए 'शिवशरण सिंह' का संदर्भ लें।",
-)
+# इमेज अपलोडर
+uploaded_file = st.file_uploader("कैथी की इमेज अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"])
 
-# इमेज अपलोड करने का विकल्प
-uploaded_file = st.file_uploader(
-    "कैथी की इमेज अपलोड करें (JPG, PNG)", type=["jpg", "jpeg", "png"]
-)
-
+# इमेज दिखाना
 if uploaded_file is not None:
-  image = Image.open(uploaded_file)
-  st.image(image, caption="Uploaded Image", use_column_width=True)
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Image", use_container_width=True)
 
 # अनुवाद बटन
 if st.button("Translate to Hindi/English"):
-  if not api_key:
-    st.error("कृपया पहले अपनी API Key दर्ज करें!")
-  elif not uploaded_file:
-    st.error("कृपया अनुवाद के लिए कोई इमेज अपलोड करें!")
-  else:
-  try:
-    # Google GenAI कॉन्फिगरेशन
-    genai.configure(api_key=api_key)
-
-    # मॉडल का नाम अपडेट करके gemini-3.6-flash किया गया है
-    model_name = "models/gemini-3.6-flash"
-    model = genai.GenerativeModel(model_name)
-
-    # प्रॉम्प्ट तैयार करना
-    prompt = f"""
-            आप कैथी लिपि (Kaithi script) के पुराने दस्तावेजों को पढ़ने और अनुवाद करने में माहिर हैं।
-            दिए गए निर्देश और कस्टम प्रॉम्प्ट का पालन करें:
-            {custom_prompt}
+    if not api_key:
+        st.warning("कृपया पहले अपनी API Key दर्ज करें।")
+    elif uploaded_file is None:
+        st.warning("कृपया अनुवाद के लिए कैथी लिपि की इमेज अपलोड करें।")
+    else:
+        try:
+            # API Key कॉन्फ़िगरेशन
+            genai.configure(api_key=api_key)
             
-            कृपया इस इमेज में दी गई कैथी लिपि को समझकर उसका सटीक हिंदी (या अंग्रेजी, जैसी आवश्यकता हो) में अनुवाद करें और उसका फॉर्मेट बनाए रखें।
-            """
-
-    with st.spinner("अनुवाद किया जा रहा है... कृपया प्रतीक्षा करें"):
-      response = model.generate_content([prompt, image])
-
-    st.subheader("अनुवाद परिणाम (Translation Result):")
-    st.write(response.text)
-
-  except Exception as e:
-    st.error(f"त्रुटि (Error) आई है: {e}")
+            # अपडेटेड मॉडल (gemini-2.5-flash) का उपयोग
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            
+            with st.spinner("अनुवाद किया जा रहा है, कृपया प्रतीक्षा करें..."):
+                # AI के लिए प्रॉम्प्ट
+                prompt = """
+                This is an image containing text written in Kaithi script. 
+                Please transcribe and translate this text into both Hindi and English. 
+                Try to maintain the original format and layout as much as possible.
+                """
+                
+                # API कॉल
+                response = model.generate_content([prompt, image])
+                
+                st.success("अनुवाद पूरा हुआ!")
+                
+                # परिणाम दिखाना
+                st.markdown("### Translation Result:")
+                st.write(response.text)
+                
+        except Exception as e:
+            st.error(f"Google Server Connection Error: {e}")
+            st.info("कृपया चेक करें कि आपकी API Key सही है और आपके पास इंटरनेट कनेक्शन है।")
